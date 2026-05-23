@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서울시 문화·여가 인프라 맞춤 추천 대시보드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .sidebar { background: white; border-right: 1px solid #e2e8f0; height: 100vh; position: sticky; top: 0; padding: 24px; overflow-y: auto; }
+        .bento-card { background: white; border: 1px solid #eef2f6; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .recommend-card { background: white; border: 1px solid #eef2f6; border-radius: 20px; padding: 24px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); transition: all 0.3s ease; }
+        .recommend-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        input[type="range"] { width: 100%; height: 6px; background: #e2e8f0; border-radius: 5px; appearance: none; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 2px rgba(0,0,0,0.2); }
+        .tag { background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-right: 6px; margin-bottom: 6px; display: inline-block; }
+        .rank-badge { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; margin-bottom: 12px; display: inline-block; }
+    </style>
+</head>
+<body class="flex">
+    <!-- Sidebar -->
+    <aside class="sidebar w-80 flex-shrink-0">
+        <h2 class="text-xl font-bold mb-6 flex items-center gap-2">⚙️ 분석 설정</h2>
+        
+        <div class="mb-8">
+            <p class="text-sm font-semibold mb-3 text-slate-500">분석 모드</p>
+            <div class="flex flex-col gap-2">
+                <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-slate-50">
+                    <input type="radio" name="mode" value="abs" checked class="w-4 h-4 text-blue-600">
+                    <span class="text-sm font-medium">절대 시설 수 기준</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-slate-50">
+                    <input type="radio" name="mode" value="cap" class="w-4 h-4 text-blue-600">
+                    <span class="text-sm font-medium">인구 대비 인프라 기준</span>
+                </label>
+            </div>
+        </div>
+
+        <hr class="mb-8 border-slate-100">
+
+        <h3 class="text-lg font-bold mb-6 flex items-center gap-2">🎯 시설 중요도</h3>
+        <div id="weight-sliders" class="space-y-6">
+            <!-- Sliders will be injected here -->
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-8 overflow-y-auto">
+        <header class="mb-8">
+            <h1 class="text-3xl font-extrabold text-slate-900 mb-2">🏙️ 서울시 문화·여가 인프라 맞춤 추천</h1>
+            <p class="text-slate-500 font-medium" id="current-mode-text">절대 시설 수 기준 사용자의 선호도에 따른 실시간 주거 입지 분석</p>
+        </header>
+
+        <!-- KPI Section -->
+        <div class="grid grid-cols-6 gap-4 mb-8" id="kpi-section">
+            <!-- KPIs will be injected here -->
+        </div>
+
+        <div class="grid grid-cols-3 gap-6 mb-12">
+            <!-- Map -->
+            <div class="col-span-2 bento-card relative h-[600px]">
+                <h3 class="text-lg font-bold mb-4">🗺️ 맞춤 추천 점수 지도</h3>
+                <div id="map-chart" style="width: 100%; height: 500px;"></div>
+            </div>
+            <!-- Bar Chart -->
+            <div class="bento-card h-[600px]">
+                <h3 class="text-lg font-bold mb-4">🥇 추천 지역 순위</h3>
+                <div id="rank-chart" style="width: 100%; height: 500px;"></div>
+            </div>
+        </div>
+
+        <!-- Recommendation Cards -->
+        <h3 class="text-2xl font-bold mb-6 flex items-center gap-2">🏆 맞춤 주거 입지 추천 가이드 (TOP 3)</h3>
+        <div class="grid grid-cols-3 gap-6 mb-12" id="recommend-cards">
+            <!-- Cards will be injected here -->
+        </div>
+
+        <footer class="mt-12 pt-8 border-t border-slate-200 text-center text-slate-400 text-sm">
+            © 2026 Seoul Culture & Leisure Infrastructure Dashboard • Data: Seoul Open Data Plaza
+        </footer>
+    </main>
+
+    <script>
+        // Data Configuration
+        const rawData = [
+  {
+    "자치구": "강남구",
+    "공원": 7.0,
+    "도서관": 33.0,
+    "문화공간": 102.0,
+    "영화관": 115.0,
+    "체육시설": 10.0,
+    "총시설수": 267.0,
+    "순위": 2.0,
+    "문화시설합계": 250.0,
+    "체육_대비_문화_비율": 25.0,
+    "다양성지수": 1.2072996201287485,
+    "클러스터": 3,
+    "30대인구": 152729.63700729166,
+    "공원_1만명당": 0.458,
+    "도서관_1만명당": 2.161,
+    "문화공간_1만명당": 6.678,
+    "영화관_1만명당": 7.53,
+    "체육시설_1만명당": 0.655,
+    "총시설수_1만명당": 17.482,
+    "인구대비지수": 84.0
+  },
+  {
+    "자치구": "강동구",
+    "공원": 7.0,
+    "도서관": 12.0,
+    "문화공간": 14.0,
+    "영화관": 4.0,
+    "체육시설": 14.0,
+    "총시설수": 51.0,
+    "순위": 22.0,
+    "문화시설합계": 30.0,
+    "체육_대비_문화_비율": 2.142857142857143,
+    "다양성지수": 1.5224328187135416,
+    "클러스터": 1,
+    "30대인구": 78043.38664806548,
+    "공원_1만명당": 0.897,
+    "도서관_1만명당": 1.538,
+    "문화공간_1만명당": 1.794,
+    "영화관_1만명당": 0.513,
+    "체육시설_1만명당": 1.794,
+    "총시설수_1만명당": 6.535,
+    "인구대비지수": 8.0
+  },
+  {
+    "자치구": "강북구",
+    "공원": 4.0,
+    "도서관": 11.0,
+    "문화공간": 16.0,
+    "영화관": 4.0,
+    "체육시설": 8.0,
+    "총시설수": 43.0,
+    "순위": 24.0,
+    "문화시설합계": 31.0,
+    "체육_대비_문화_비율": 3.875,
+    "다양성지수": 1.4713360510652742,
+    "클러스터": 0,
+    "30대인구": 32145.292596949403,
+    "공원_1만명당": 1.244,
+    "도서관_1만명당": 3.422,
+    "문화공간_1만명당": 4.977,
+    "영화관_1만명당": 1.244,
+    "체육시설_1만명당": 2.489,
+    "총시설수_1만명당": 13.377,
+    "인구대비지수": 60.0
+  },
+  {
+    "자치구": "강서구",
+    "공원": 10.0,
+    "도서관": 19.0,
+    "문화공간": 18.0,
+    "영화관": 12.0,
+    "체육시설": 16.0,
+    "총시설수": 75.0,
+    "순위": 13.0,
+    "문화시설합계": 49.0,
+    "체육_대비_문화_비율": 3.0625,
+    "다양성지수": 1.5817923464759598,
+    "클러스터": 1,
+    "30대인구": 97985.63705498513,
+    "공원_1만명당": 1.021,
+    "도서관_1만명당": 1.939,
+    "문화공간_1만명당": 1.837,
+    "영화관_1만명당": 1.225,
+    "체육시설_1만명당": 1.633,
+    "총시설수_1만명당": 7.654,
+    "인구대비지수": 12.0
+  },
+  {
+    "자치구": "관악구",
+    "공원": 2.0,
+    "도서관": 9.0,
+    "문화공간": 17.0,
+    "영화관": 5.0,
+    "체육시설": 19.0,
+    "총시설수": 52.0,
+    "순위": 21.0,
+    "문화시설합계": 31.0,
+    "체육_대비_문화_비율": 1.631578947368421,
+    "다양성지수": 1.387446169111535,
+    "클러스터": 1,
+    "30대인구": 88420.69304709822,
+    "공원_1만명당": 0.226,
+    "도서관_1만명당": 1.018,
+    "문화공간_1만명당": 1.923,
+    "영화관_1만명당": 0.565,
+    "체육시설_1만명당": 2.149,
+    "총시설수_1만명당": 5.881,
+    "인구대비지수": 4.0
+  },
+  {
+    "자치구": "광진구",
+    "공원": 2.0,
+    "도서관": 14.0,
+    "문화공간": 25.0,
+    "영화관": 10.0,
+    "체육시설": 12.0,
+    "총시설수": 63.0,
+    "순위": 16.0,
+    "문화시설합계": 49.0,
+    "체육_대비_문화_비율": 4.083333333333333,
+    "다양성지수": 1.418535943457644,
+    "클러스터": 0,
+    "30대인구": 58713.94826436012,
+    "공원_1만명당": 0.341,
+    "도서관_1만명당": 2.384,
+    "문화공간_1만명당": 4.258,
+    "영화관_1만명당": 1.703,
+    "체육시설_1만명당": 2.044,
+    "총시설수_1만명당": 10.73,
+    "인구대비지수": 32.0
+  },
+  {
+    "자치구": "구로구",
+    "공원": 4.0,
+    "도서관": 19.0,
+    "문화공간": 27.0,
+    "영화관": 9.0,
+    "체육시설": 18.0,
+    "총시설수": 77.0,
+    "순위": 11.0,
+    "문화시설합계": 55.0,
+    "체육_대비_문화_비율": 3.055555555555556,
+    "다양성지수": 1.4570674183612713,
+    "클러스터": 1,
+    "30대인구": 65084.71165967261,
+    "공원_1만명당": 0.615,
+    "도서관_1만명당": 2.919,
+    "문화공간_1만명당": 4.148,
+    "영화관_1만명당": 1.383,
+    "체육시설_1만명당": 2.766,
+    "총시설수_1만명당": 11.831,
+    "인구대비지수": 44.0
+  },
+  {
+    "자치구": "금천구",
+    "공원": 4.0,
+    "도서관": 6.0,
+    "문화공간": 16.0,
+    "영화관": 12.0,
+    "체육시설": 11.0,
+    "총시설수": 49.0,
+    "순위": 23.0,
+    "문화시설합계": 34.0,
+    "체육_대비_문화_비율": 3.090909090909091,
+    "다양성지수": 1.5070676121122089,
+    "클러스터": 0,
+    "30대인구": 42492.60255997024,
+    "공원_1만명당": 0.941,
+    "도서관_1만명당": 1.412,
+    "문화공간_1만명당": 3.765,
+    "영화관_1만명당": 2.824,
+    "체육시설_1만명당": 2.589,
+    "총시설수_1만명당": 11.531,
+    "인구대비지수": 40.0
+  },
+  {
+    "자치구": "노원구",
+    "공원": 3.0,
+    "도서관": 21.0,
+    "문화공간": 23.0,
+    "영화관": 8.0,
+    "체육시설": 21.0,
+    "총시설수": 76.0,
+    "순위": 12.0,
+    "문화시설합계": 52.0,
+    "체육_대비_문화_비율": 2.4761904761904763,
+    "다양성지수": 1.437079675152157,
+    "클러스터": 1,
+    "30대인구": 56559.46494828869,
+    "공원_1만명당": 0.53,
+    "도서관_1만명당": 3.713,
+    "문화공간_1만명당": 4.067,
+    "영화관_1만명당": 1.414,
+    "체육시설_1만명당": 3.713,
+    "총시설수_1만명당": 13.437,
+    "인구대비지수": 64.0
+  },
+  {
+    "자치구": "도봉구",
+    "공원": 6.0,
+    "도서관": 10.0,
+    "문화공간": 23.0,
+    "영화관": 3.0,
+    "체육시설": 11.0,
+    "총시설수": 53.0,
+    "순위": 20.0,
+    "문화시설합계": 36.0,
+    "체육_대비_문화_비율": 3.272727272727273,
+    "다양성지수": 1.4124530535810722,
+    "클러스터": 0,
+    "30대인구": 32136.6345671875,
+    "공원_1만명당": 1.867,
+    "도서관_1만명당": 3.112,
+    "문화공간_1만명당": 7.157,
+    "영화관_1만명당": 0.934,
+    "체육시설_1만명당": 3.423,
+    "총시설수_1만명당": 16.492,
+    "인구대비지수": 80.0
+  },
+  {
+    "자치구": "동대문구",
+    "공원": 4.0,
+    "도서관": 19.0,
+    "문화공간": 30.0,
+    "영화관": 5.0,
+    "체육시설": 5.0,
+    "총시설수": 63.0,
+    "순위": 16.0,
+    "문화시설합계": 54.0,
+    "체육_대비_문화_비율": 10.8,
+    "다양성지수": 1.2920264942828408,
+    "클러스터": 0,
+    "30대인구": 53147.66419434524,
+    "공원_1만명당": 0.753,
+    "도서관_1만명당": 3.575,
+    "문화공간_1만명당": 5.645,
+    "영화관_1만명당": 0.941,
+    "체육시설_1만명당": 0.941,
+    "총시설수_1만명당": 11.854,
+    "인구대비지수": 48.0
+  },
+  {
+    "자치구": "동작구",
+    "공원": 7.0,
+    "도서관": 19.0,
+    "문화공간": 24.0,
+    "영화관": 9.0,
+    "체육시설": 13.0,
+    "총시설수": 72.0,
+    "순위": 15.0,
+    "문화시설합계": 52.0,
+    "체육_대비_문화_비율": 4.0,
+    "다양성지수": 1.5133554743087467,
+    "클러스터": 1,
+    "30대인구": 58497.344624107136,
+    "공원_1만명당": 1.197,
+    "도서관_1만명당": 3.248,
+    "문화공간_1만명당": 4.103,
+    "영화관_1만명당": 1.539,
+    "체육시설_1만명당": 2.222,
+    "총시설수_1만명당": 12.308,
+    "인구대비지수": 52.0
+  },
+  {
+    "자치구": "마포구",
+    "공원": 5.0,
+    "도서관": 15.0,
+    "문화공간": 47.0,
+    "영화관": 37.0,
+    "체육시설": 9.0,
+    "총시설수": 113.0,
+    "순위": 6.0,
+    "문화시설합계": 99.0,
+    "체육_대비_문화_비율": 11.0,
+    "다양성지수": 1.337973094615538,
+    "클러스터": 0,
+    "30대인구": 82884.16798772321,
+    "공원_1만명당": 0.603,
+    "도서관_1만명당": 1.81,
+    "문화공간_1만명당": 5.671,
+    "영화관_1만명당": 4.464,
+    "체육시설_1만명당": 1.086,
+    "총시설수_1만명당": 13.633,
+    "인구대비지수": 72.0
+  },
+  {
+    "자치구": "서대문구",
+    "공원": 4.0,
+    "도서관": 18.0,
+    "문화공간": 32.0,
+    "영화관": 11.0,
+    "체육시설": 13.0,
+    "총시설수": 78.0,
+    "순위": 10.0,
+    "문화시설합계": 61.0,
+    "체육_대비_문화_비율": 4.6923076923076925,
+    "다양성지수": 1.4311112930487733,
+    "클러스터": 0,
+    "30대인구": 57946.14288415178,
+    "공원_1만명당": 0.69,
+    "도서관_1만명당": 3.106,
+    "문화공간_1만명당": 5.522,
+    "영화관_1만명당": 1.898,
+    "체육시설_1만명당": 2.243,
+    "총시설수_1만명당": 13.461,
+    "인구대비지수": 68.0
+  },
+  {
+    "자치구": "서초구",
+    "공원": 6.0,
+    "도서관": 44.0,
+    "문화공간": 54.0,
+    "영화관": 30.0,
+    "체육시설": 8.0,
+    "총시설수": 142.0,
+    "순위": 4.0,
+    "문화시설합계": 128.0,
+    "체육_대비_문화_비율": 16.0,
+    "다양성지수": 1.354901050519951,
+    "클러스터": 3,
+    "30대인구": 100391.56851116072,
+    "공원_1만명당": 0.598,
+    "도서관_1만명당": 4.383,
+    "문화공간_1만명당": 5.379,
+    "영화관_1만명당": 2.988,
+    "체육시설_1만명당": 0.797,
+    "총시설수_1만명당": 14.145,
+    "인구대비지수": 76.0
+  },
+  {
+    "자치구": "성동구",
+    "공원": 5.0,
+    "도서관": 10.0,
+    "문화공간": 27.0,
+    "영화관": 12.0,
+    "체육시설": 19.0,
+    "총시설수": 73.0,
+    "순위": 14.0,
+    "문화시설합계": 49.0,
+    "체육_대비_문화_비율": 2.5789473684210527,
+    "다양성지수": 1.470954560657347,
+    "클러스터": 1,
+    "30대인구": 64986.438751711314,
+    "공원_1만명당": 0.769,
+    "도서관_1만명당": 1.539,
+    "문화공간_1만명당": 4.155,
+    "영화관_1만명당": 1.847,
+    "체육시설_1만명당": 2.924,
+    "총시설수_1만명당": 11.233,
+    "인구대비지수": 36.0
+  },
+  {
+    "자치구": "성북구",
+    "공원": 3.0,
+    "도서관": 26.0,
+    "문화공간": 48.0,
+    "영화관": 12.0,
+    "체육시설": 19.0,
+    "총시설수": 108.0,
+    "순위": 7.0,
+    "문화시설합계": 86.0,
+    "체육_대비_문화_비율": 4.526315789473684,
+    "다양성지수": 1.3526199699042198,
+    "클러스터": 1,
+    "30대인구": 54597.71333616072,
+    "공원_1만명당": 0.549,
+    "도서관_1만명당": 4.762,
+    "문화공간_1만명당": 8.792,
+    "영화관_1만명당": 2.198,
+    "체육시설_1만명당": 3.48,
+    "총시설수_1만명당": 19.781,
+    "인구대비지수": 88.0
+  },
+  {
+    "자치구": "송파구",
+    "공원": 7.0,
+    "도서관": 20.0,
+    "문화공간": 50.0,
+    "영화관": 13.0,
+    "체육시설": 16.0,
+    "총시설수": 106.0,
+    "순위": 8.0,
+    "문화시설합계": 83.0,
+    "체육_대비_문화_비율": 5.1875,
+    "다양성지수": 1.3913359998789463,
+    "클러스터": 1,
+    "30대인구": 126068.29104337798,
+    "공원_1만명당": 0.555,
+    "도서관_1만명당": 1.586,
+    "문화공간_1만명당": 3.966,
+    "영화관_1만명당": 1.031,
+    "체육시설_1만명당": 1.269,
+    "총시설수_1만명당": 8.408,
+    "인구대비지수": 24.0
+  },
+  {
+    "자치구": "양천구",
+    "공원": 5.0,
+    "도서관": 12.0,
+    "문화공간": 18.0,
+    "영화관": 9.0,
+    "체육시설": 15.0,
+    "총시설수": 59.0,
+    "순위": 19.0,
+    "문화시설합계": 39.0,
+    "체육_대비_문화_비율": 2.6,
+    "다양성지수": 1.530274135188489,
+    "클러스터": 1,
+    "30대인구": 44721.67953318453,
+    "공원_1만명당": 1.118,
+    "도서관_1만명당": 2.683,
+    "문화공간_1만명당": 4.025,
+    "영화관_1만명당": 2.012,
+    "체육시설_1만명당": 3.354,
+    "총시설수_1만명당": 13.193,
+    "인구대비지수": 56.00000000000001
+  },
+  {
+    "자치구": "영등포구",
+    "공원": 5.0,
+    "도서관": 23.0,
+    "문화공간": 21.0,
+    "영화관": 22.0,
+    "체육시설": 13.0,
+    "총시설수": 84.0,
+    "순위": 9.0,
+    "문화시설합계": 66.0,
+    "체육_대비_문화_비율": 5.076923076923077,
+    "다양성지수": 1.5088429495383642,
+    "클러스터": 1,
+    "30대인구": 101709.17315052082,
+    "공원_1만명당": 0.492,
+    "도서관_1만명당": 2.261,
+    "문화공간_1만명당": 2.065,
+    "영화관_1만명당": 2.163,
+    "체육시설_1만명당": 1.278,
+    "총시설수_1만명당": 8.259,
+    "인구대비지수": 16.0
+  },
+  {
+    "자치구": "용산구",
+    "공원": 2.0,
+    "도서관": 20.0,
+    "문화공간": 62.0,
+    "영화관": 30.0,
+    "체육시설": 8.0,
+    "총시설수": 122.0,
+    "순위": 5.0,
+    "문화시설합계": 112.0,
+    "체육_대비_문화_비율": 14.0,
+    "다양성지수": 1.2314413276160538,
+    "클러스터": 0,
+    "30대인구": 55206.8963767113,
+    "공원_1만명당": 0.362,
+    "도서관_1만명당": 3.623,
+    "문화공간_1만명당": 11.23,
+    "영화관_1만명당": 5.434,
+    "체육시설_1만명당": 1.449,
+    "총시설수_1만명당": 22.099,
+    "인구대비지수": 92.0
+  },
+  {
+    "자치구": "은평구",
+    "공원": 7.0,
+    "도서관": 13.0,
+    "문화공간": 25.0,
+    "영화관": 7.0,
+    "체육시설": 10.0,
+    "총시설수": 62.0,
+    "순위": 18.0,
+    "문화시설합계": 45.0,
+    "체육_대비_문화_비율": 4.5,
+    "다양성지수": 1.4806048643125134,
+    "클러스터": 0,
+    "30대인구": 60722.4506205357,
+    "공원_1만명당": 1.153,
+    "도서관_1만명당": 2.141,
+    "문화공간_1만명당": 4.117,
+    "영화관_1만명당": 1.153,
+    "체육시설_1만명당": 1.647,
+    "총시설수_1만명당": 10.21,
+    "인구대비지수": 28.000000000000004
+  },
+  {
+    "자치구": "종로구",
+    "공원": 12.0,
+    "도서관": 43.0,
+    "문화공간": 244.0,
+    "영화관": 36.0,
+    "체육시설": 10.0,
+    "총시설수": 345.0,
+    "순위": 1.0,
+    "문화시설합계": 323.0,
+    "체육_대비_문화_비율": 32.3,
+    "다양성지수": 0.959799302659821,
+    "클러스터": 2,
+    "30대인구": 47942.46351302083,
+    "공원_1만명당": 2.503,
+    "도서관_1만명당": 8.969,
+    "문화공간_1만명당": 50.894,
+    "영화관_1만명당": 7.509,
+    "체육시설_1만명당": 2.086,
+    "총시설수_1만명당": 71.961,
+    "인구대비지수": 100.0
+  },
+  {
+    "자치구": "중구",
+    "공원": 5.0,
+    "도서관": 37.0,
+    "문화공간": 78.0,
+    "영화관": 57.0,
+    "체육시설": 14.0,
+    "총시설수": 191.0,
+    "순위": 3.0,
+    "문화시설합계": 172.0,
+    "체육_대비_문화_비율": 12.285714285714286,
+    "다양성지수": 1.33146104221952,
+    "클러스터": 3,
+    "30대인구": 52302.877634375,
+    "공원_1만명당": 0.956,
+    "도서관_1만명당": 7.074,
+    "문화공간_1만명당": 14.913,
+    "영화관_1만명당": 10.898,
+    "체육시설_1만명당": 2.677,
+    "총시설수_1만명당": 36.518,
+    "인구대비지수": 96.0
+  },
+  {
+    "자치구": "중랑구",
+    "공원": 5.0,
+    "도서관": 8.0,
+    "문화공간": 13.0,
+    "영화관": 4.0,
+    "체육시설": 13.0,
+    "총시설수": 43.0,
+    "순위": 24.0,
+    "문화시설합계": 25.0,
+    "체육_대비_문화_비율": 1.9230769230769231,
+    "다양성지수": 1.5073261009473136,
+    "클러스터": 0,
+    "30대인구": 51645.19116614584,
+    "공원_1만명당": 0.968,
+    "도서관_1만명당": 1.549,
+    "문화공간_1만명당": 2.517,
+    "영화관_1만명당": 0.775,
+    "체육시설_1만명당": 2.517,
+    "총시설수_1만명당": 8.326,
+    "인구대비지수": 20.0
+  }
+];
+
+        const facilityTypes = [
+            { id: '공원', icon: '🌳', label: '공원', default: 2.5 },
+            { id: '도서관', icon: '📚', label: '도서관', default: 3.5 },
+            { id: '문화공간', icon: '🏛️', label: '문화공간', default: 2.0 },
+            { id: '영화관', icon: '🎬', label: '영화관', default: 3.0 },
+            { id: '체육시설', icon: '⚽', label: '체육시설', default: 4.0 }
+        ];
+
+        let currentWeights = {};
+        facilityTypes.forEach(f => currentWeights[f.id] = f.default);
+        let currentMode = 'abs'; // 'abs' or 'cap'
+
+        // Initialize UI
+        const sliderContainer = document.getElementById('weight-sliders');
+        facilityTypes.forEach(f => {
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-bold text-slate-700">${f.icon} ${f.label}</span>
+                    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded" id="val-${f.id}">${f.default}</span>
+                </div>
+                <input type="range" min="0" max="5" step="0.5" value="${f.default}" id="slider-${f.id}">
+            `;
+            sliderContainer.appendChild(div);
+            
+            document.getElementById(`slider-${f.id}`).addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                currentWeights[f.id] = val;
+                document.getElementById(`val-${f.id}`).innerText = val.toFixed(1);
+                updateDashboard();
+            });
+        });
+
+        document.querySelectorAll('input[name="mode"]').forEach(r => {
+            r.addEventListener('change', (e) => {
+                currentMode = e.target.value;
+                document.getElementById('current-mode-text').innerText = 
+                    (currentMode === 'abs' ? '절대 시설 수 기준' : '인구 대비 인프라 기준') + 
+                    ' 사용자의 선호도에 따른 실시간 주거 입지 분석';
+                updateDashboard();
+            });
+        });
+
+        // Charts
+        let mapChart = echarts.init(document.getElementById('map-chart'));
+        let rankChart = echarts.init(document.getElementById('rank-chart'));
+
+        async function init() {
+            const geoRes = await fetch('https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json');
+            const geoJson = await geoRes.json();
+            echarts.registerMap('seoul', geoJson);
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            // 1. Calculate Scores
+            const dataWithScores = rawData.map(d => {
+                let score = 0;
+                let totalW = 0;
+                facilityTypes.forEach(f => {
+                    const col = currentMode === 'abs' ? f.id : `${f.id}_1만명당`;
+                    const maxVal = Math.max(...rawData.map(x => x[col])) || 1;
+                    const norm = d[col] / maxVal;
+                    score += norm * currentWeights[f.id];
+                    totalW += currentWeights[f.id];
+                });
+                const finalScore = totalW > 0 ? (score / totalW * 100).toFixed(1) : 0;
+                return { ...d, score: parseFloat(finalScore) };
+            });
+
+            // 2. Update KPIs
+            const kpiSection = document.getElementById('kpi-section');
+            kpiSection.innerHTML = '';
+            facilityTypes.forEach(f => {
+                const total = rawData.reduce((s, x) => s + x[f.id], 0);
+                kpiSection.innerHTML += `
+                    <div class="bento-card">
+                        <p class="text-xs font-bold text-slate-400 mb-1">${f.icon} ${f.label}</p>
+                        <p class="text-xl font-black text-slate-800">${total.toLocaleString()}개</p>
+                    </div>
+                `;
+            });
+            const totalPop = rawData.reduce((s, x) => s + x['30대인구'], 0);
+            kpiSection.innerHTML += `
+                <div class="bento-card">
+                    <p class="text-xs font-bold text-slate-400 mb-1">👥 30대 인구</p>
+                    <p class="text-xl font-black text-slate-800">${Math.round(totalPop).toLocaleString()}명</p>
+                </div>
+            `;
+
+            // 3. Update Map
+            const highImportance = {};
+            facilityTypes.forEach(f => highImportance[f.id] = currentWeights[f.id] >= 3.5);
+
+            mapChart.setOption({
+                tooltip: {
+                    trigger: 'item',
+                    backgroundColor: 'rgba(255,255,255,0.98)',
+                    padding: 16, borderRadius: 12, borderWidth: 0, shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.1)',
+                    formatter: (p) => {
+                        if(!p.data) return p.name;
+                        const d = p.data.origin;
+                        const getS = (k) => highImportance[k] ? 'font-weight:700; color:#ef4444; background:#fef2f2; padding:1px 4px; border-radius:3px;' : 'color:#64748b;';
+                        return `
+                            <div class="font-bold text-lg mb-2">${d.자치구}</div>
+                            <div class="text-blue-600 font-bold mb-1 text-sm">⭐ 추천 점수: ${p.data.value}점</div>
+                            <div class="text-slate-400 text-xs mb-3">👥 30대 인구: ${Math.round(d['30대인구']).toLocaleString()}명</div>
+                            <hr class="mb-3">
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:11px;">
+                                <div style="${getS('공원')}">🌳 공원: ${d.공원}</div>
+                                <div style="${getS('도서관')}">📚 도서관: ${d.도서관}</div>
+                                <div style="${getS('문화공간')}">🎭 문화: ${d.문화공간}</div>
+                                <div style="${getS('영화관')}">🎬 영화: ${d.영화관}</div>
+                                <div style="${getS('체육시설')}">⚽ 체육: ${d.체육시설}</div>
+                            </div>
+                        `;
+                    }
+                },
+                visualMap: {
+                    min: Math.min(...dataWithScores.map(d => d.score)),
+                    max: Math.max(...dataWithScores.map(d => d.score)),
+                    inRange: { color: ['#eff6ff', '#3b82f6', '#1e3a8a'] },
+                    show: false
+                },
+                series: [{
+                    type: 'map', map: 'seoul',
+                    label: { show: true, fontSize: 10, color: '#475569' },
+                    itemStyle: { borderColor: '#fff', borderWidth: 1 },
+                    emphasis: { itemStyle: { areaColor: '#dbeafe' }, label: { color: '#1e3a8a', fontWeight: 'bold' } },
+                    data: dataWithScores.map(d => ({ name: d.자치구, value: d.score, origin: d }))
+                }]
+            });
+
+            // 4. Update Bar Chart
+            const sorted = [...dataWithScores].sort((a, b) => a.score - b.score).slice(-10);
+            rankChart.setOption({
+                grid: { left: '15%', right: '10%', top: '2%', bottom: '5%' },
+                xAxis: { type: 'value', show: false },
+                yAxis: { type: 'category', data: sorted.map(d => d.자치구), axisLine: { show: false }, axisTick: { show: false } },
+                series: [{
+                    type: 'bar', data: sorted.map(d => d.score),
+                    label: { show: true, position: 'right', formatter: '{c}점' },
+                    itemStyle: { color: '#3b82f6', borderRadius: [0, 6, 6, 0] }
+                }]
+            });
+
+            // 5. Update Recommendation Cards
+            const top3 = [...dataWithScores].sort((a, b) => b.score - a.score).slice(0, 3);
+            const cardsContainer = document.getElementById('recommend-cards');
+            cardsContainer.innerHTML = '';
+            
+            top3.forEach((d, i) => {
+                const { reasons, tags } = getRecommendationContent(d, dataWithScores);
+                const card = document.createElement('div');
+                card.className = 'recommend-card';
+                card.innerHTML = `
+                    <div class="rank-badge">${i+1}위 추천</div>
+                    <div class="text-2xl font-black text-slate-800 mb-1">${d.자치구}</div>
+                    <div class="text-blue-600 font-bold text-lg mb-4">총점 ${d.score}점</div>
+                    <hr class="mb-5 border-slate-100">
+                    
+                    <p class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">📊 시설별 지표</p>
+                    <div class="space-y-3 mb-6">
+                        ${facilityTypes.map(f => {
+                            const val = currentMode === 'abs' ? d[f.id] : d[`${f.id}_1만명당`];
+                            const maxVal = Math.max(...dataWithScores.map(x => currentMode === 'abs' ? x[f.id] : x[`${f.id}_1만명당`])) || 1;
+                            const pct = Math.min(val / maxVal * 100, 100);
+                            return `
+                                <div>
+                                    <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1">
+                                        <span>${f.icon} ${f.label}</span>
+                                        <span>${val.toFixed(1)}</span>
+                                    </div>
+                                    <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="h-full bg-blue-500 rounded-full" style="width: ${pct}%"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <p class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">✅ 추천 이유</p>
+                    <ul class="text-sm text-slate-600 space-y-2 mb-6">
+                        ${reasons.map(r => `<li class="flex items-start gap-2"><span>•</span><span>${r}</span></li>`).join('')}
+                    </ul>
+
+                    <p class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">🎨 라이프스타일</p>
+                    <div>
+                        ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                    </div>
+                `;
+                cardsContainer.appendChild(card);
+            });
+        }
+
+        function getRecommendationContent(row, allData) {
+            const reasons = [];
+            const tags = [];
+            
+            facilityTypes.forEach(f => {
+                const col = currentMode === 'abs' ? f.id : `${f.id}_1만명당`;
+                const sortedVals = allData.map(x => x[col]).sort((a, b) => b - a);
+                const topVal = sortedVals[4]; // Top 5 threshold
+                
+                if (row[col] >= topVal) {
+                    if (f.id === '영화관') reasons.push('🎬 문화·영상 콘텐츠 접근성이 서울 최상위권입니다.');
+                    else if (f.id === '공원') reasons.push('🌳 도심 속 대형 공원과 녹지 접근성이 매우 우수합니다.');
+                    else if (f.id === '도서관') reasons.push('📚 자기계발을 위한 도서관 인프라가 풍부합니다.');
+                    else if (f.id === '체육시설') reasons.push('⚽ 다양한 스포츠 시설이 밀집되어 활동적입니다.');
+                    else if (f.id === '문화공간') reasons.push('🏛️ 전시, 공연 등 예술 향유 기회가 풍부합니다.');
+                }
+            });
+
+            const avgDiv = allData.reduce((s, x) => s + x.다양성지수, 0) / allData.length;
+            if (row.다양성지수 > avgDiv) reasons.push('⚖️ 생활 인프라가 특정 시설에 치우치지 않고 균형적입니다.');
+            
+            if (reasons.length < 2) reasons.push('🏙️ 30대 선호 핵심 인프라를 고르게 갖춘 지역입니다.');
+
+            if (row.영화관 > 10 || row.문화공간 > 30) tags.push('#문화생활_중심');
+            if (row.공원 > 5 || row.체육시설 > 15) tags.push('#활동적_여가');
+            if (row.도서관 > 20) tags.push('#자기계발_지향');
+            if (row.다양성지수 > 1.45) tags.push('#올라운드_거주');
+            
+            return { reasons: reasons.slice(0, 3), tags: tags.length ? tags.slice(0, 3) : ['#안정적_주거지'] };
+        }
+
+        window.addEventListener('resize', () => {
+            mapChart.resize();
+            rankChart.resize();
+        });
+
+        init();
+    </script>
+</body>
+</html>
