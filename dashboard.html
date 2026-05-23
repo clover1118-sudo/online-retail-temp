@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛍️ Online Retail 종합 분석 대시보드</title>
+    
+    <!-- Google Fonts: 타이포그래피 설정 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons: 웹앱 아이콘 라이브러리 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js: 인터랙티브 차트 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- 바닐라 CSS 기반 프리미엄 디자인 시스템 -->
+    <style>
+        :root {
+            /* 다크 모드 (기본값) 디자인 토큰 */
+            --bg-primary: #090d16;
+            --bg-secondary: #0f1626;
+            --bg-card: rgba(20, 30, 54, 0.6);
+            --bg-card-hover: rgba(28, 41, 71, 0.8);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            
+            --neon-blue: #06b6d4;
+            --neon-purple: #a855f7;
+            --shadow-premium: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            --glass-blur: blur(12px);
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="light"] {
+            /* 라이트 모드 디자인 토큰 */
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: rgba(255, 255, 255, 0.75);
+            --bg-card-hover: rgba(255, 255, 255, 0.95);
+            --border-color: rgba(0, 0, 0, 0.06);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --accent: #4f46e5;
+            --accent-glow: rgba(79, 70, 229, 0.2);
+            --accent-success: #059669;
+            --accent-warning: #d97706;
+            
+            --neon-blue: #0284c7;
+            --neon-purple: #7c3aed;
+            --shadow-premium: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: var(--transition-smooth);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+        }
+
+        /* 사이드바 내비게이션 */
+        aside {
+            width: 260px;
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1.5rem;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 100;
+            transition: var(--transition-smooth);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 3rem;
+        }
+
+        .brand i {
+            font-size: 1.75rem;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand span {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.85rem 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: var(--text-primary);
+            background-color: var(--bg-card);
+            border-color: var(--border-color);
+            box-shadow: var(--shadow-premium);
+        }
+
+        .nav-item.active i {
+            color: var(--accent);
+            text-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        /* 컨트롤 및 하단 버튼 */
+        .sidebar-footer {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: var(--transition-smooth);
+        }
+
+        .theme-toggle:hover {
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        .theme-toggle i {
+            font-size: 1.1rem;
+        }
+
+        /* 메인 콘텐츠 작업 영역 */
+        main {
+            margin-left: 260px;
+            flex-grow: 1;
+            padding: 2rem 3rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            max-width: 1600px;
+        }
+
+        /* 헤더 레이아웃 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .header-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* 국가 선택 드롭다운 */
+        .filter-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background-color: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-premium);
+        }
+
+        .filter-container label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-container select {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            padding-right: 1.5rem;
+            position: relative;
+        }
+
+        /* KPI 요약 카드 그리드 */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-premium);
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--neon-blue), var(--neon-purple));
+            opacity: 0.7;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            background: var(--bg-card-hover);
+            border-color: rgba(99, 102, 241, 0.25);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+        }
+
+        .kpi-info h3 {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-info .kpi-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .kpi-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            transition: var(--transition-smooth);
+        }
+
+        .kpi-card:hover .kpi-icon-wrapper {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 15px var(--accent-glow);
+            border-color: transparent;
+        }
+
+        /* 탭별 패널 노출 관리 */
+        .tab-panel {
+            display: none;
+            animation: fadeIn 0.4s ease;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .tab-panel.active {
+            display: flex;
+        }
+
+        /* 그리드 및 컬럼 배치 */
+        .chart-row-2 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .chart-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        /* 글래스모피즘 카드 컨테이너 */
+        .dashboard-card {
+            background: var(--bg-card);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.75rem;
+            box-shadow: var(--shadow-premium);
+            transition: var(--transition-smooth);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .dashboard-card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-header h2 i {
+            color: var(--accent);
+        }
+
+        .card-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+        }
+
+        /* 상위 키워드 태그 클라우드 형태 */
+        .keyword-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            align-content: flex-start;
+            height: 100%;
+            padding-top: 0.5rem;
+        }
+
+        .keyword-tag {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.4rem 0.85rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: var(--transition-smooth);
+            cursor: default;
+        }
+
+        .keyword-tag:hover {
+            background: var(--accent-glow);
+            color: var(--text-primary);
+            border-color: var(--accent);
+            transform: scale(1.05);
+        }
+
+        /* RFM 고객 세그먼트 전략 카드 목록 */
+        .segment-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+        }
+
+        .segment-info-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: var(--transition-smooth);
+        }
+
+        .segment-info-card:hover {
+            background: rgba(99, 102, 241, 0.05);
+            border-color: var(--accent);
+        }
+
+        .seg-badge {
+            align-self: flex-start;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.65rem;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        .seg-champions { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .seg-loyal { background: rgba(99, 102, 241, 0.15); color: #6366f1; }
+        .seg-recent { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
+        .seg-at-risk { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .seg-hibernating { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+        .seg-lost { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+        .segment-info-card h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .segment-info-card p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* 프리미엄 코호트 유지율 매트릭스 테이블 */
+        .cohort-table-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        table.cohort-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        table.cohort-table th, table.cohort-table td {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            min-width: 70px;
+        }
+
+        table.cohort-table th {
+            background-color: var(--bg-secondary);
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        table.cohort-table td.cohort-month {
+            background-color: var(--bg-secondary);
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: left;
+            min-width: 100px;
+        }
+
+        table.cohort-table td.cohort-size {
+            background-color: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-weight: 500;
+            min-width: 80px;
+        }
+
+        table.cohort-table td.ret-val {
+            font-weight: 600;
+            transition: var(--transition-smooth);
+            cursor: pointer;
+        }
+
+        table.cohort-table td.ret-val:hover {
+            filter: brightness(1.2);
+            transform: scale(1.05);
+        }
+
+        /* 애니메이션 키프레임 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 반응형 미디어 쿼리 */
+        @media (max-width: 1200px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .chart-row-2 { grid-template-columns: 1fr; }
+            .chart-grid-2 { grid-template-columns: 1fr; }
+            .segment-list { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            aside { width: 80px; padding: 2rem 0.5rem; }
+            aside .brand span, aside .nav-item span, aside .theme-toggle span { display: none; }
+            aside .brand i, aside .nav-item i, aside .theme-toggle i { margin: 0 auto; }
+            main { margin-left: 80px; padding: 1.5rem; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            .segment-list { grid-template-columns: 1fr; }
+            header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 사이드바 내비게이션 -->
+    <aside>
+        <div class="brand">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>RETAIL ANALYSIS</span>
+        </div>
+        
+        <nav class="nav-menu">
+            <div class="nav-item active" onclick="switchTab('dashboard', this)">
+                <i class="fa-solid fa-house"></i>
+                <span>종합 대시보드</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('products', this)">
+                <i class="fa-solid fa-box-open"></i>
+                <span>상품 및 카테고리</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('rfm', this)">
+                <i class="fa-solid fa-user-group"></i>
+                <span>고객 RFM 분석</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('cohort', this)">
+                <i class="fa-solid fa-users-viewfinder"></i>
+                <span>코호트 유지율</span>
+            </div>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <i class="fa-solid fa-moon" id="theme-icon"></i>
+                <span id="theme-text">다크 모드</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- 메인 레이아웃 패널 -->
+    <main>
+        <!-- 헤더 및 상단 필터 영역 -->
+        <header>
+            <div class="header-title">
+                <h1 id="dashboard-title">📈 리테일 종합 경영 분석 대시보드</h1>
+                <p id="dashboard-subtitle">online_retail.parquet 데이터셋 기반 인터랙티브 분석 리포트</p>
+            </div>
+            
+            <div class="filter-container">
+                <label for="country-select"><i class="fa-solid fa-globe"></i> 국가 필터</label>
+                <select id="country-select" onchange="onCountryChange(this.value)">
+                    <option value="All">전체 국가 (All)</option>
+                    <option value="United Kingdom">영국 (United Kingdom)</option>
+                    <option value="Germany">독일 (Germany)</option>
+                    <option value="France">프랑스 (France)</option>
+                    <option value="EIRE">아일랜드 (EIRE)</option>
+                    <option value="Netherlands">네덜란드 (Netherlands)</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- KPI 요약 카드 그리드 -->
+        <section class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>총 매출액 (Sales)</h3>
+                    <div class="kpi-value" id="kpi-sales">$0</div>
+                </div>
+                <div class="kpi-icon-wrapper" style="color: var(--neon-blue);">
+                    <i class="fa-solid fa-dollar-sign"></i>
+                </div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>총 주문 수 (Orders)</h3>
+                    <div class="kpi-value" id="kpi-orders">0</div>
+                </div>
+                <div class="kpi-icon-wrapper" style="color: var(--neon-purple);">
+                    <i class="fa-solid fa-receipt"></i>
+                </div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>고객 수 (Customers)</h3>
+                    <div class="kpi-value" id="kpi-customers">0</div>
+                </div>
+                <div class="kpi-icon-wrapper" style="color: var(--accent-success);">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>평균 주문액 (AOV)</h3>
+                    <div class="kpi-value" id="kpi-aov">$0.00</div>
+                </div>
+                <div class="kpi-icon-wrapper" style="color: var(--accent-warning);">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab Panel 1: 종합 대시보드 -->
+        <section id="panel-dashboard" class="tab-panel active">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-chart-area"></i> 시계열 매출 및 주문 트렌드 분석</h2>
+                    <span class="card-desc">월별 매출 총액(라인)과 주문량(바)의 복합적 트렌드를 분석합니다.</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart-monthly-trend"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-grid-2">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-calendar-day"></i> 요일별 총 매출액 분포</h2>
+                        <span class="card-desc">주중 업무일과 일요일의 매출액 비중을 시각화합니다 (토요일 휴무).</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-daily-dist"></canvas>
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-clock"></i> 시간대별 매출 집중도</h2>
+                        <span class="card-desc">일과 중 피크타임(오전 10시 ~ 오후 3시)의 골든 아워 매출 비중을 관측합니다.</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-hourly-dist"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab Panel 2: 상품 및 카테고리 -->
+        <section id="panel-products" class="tab-panel">
+            <div class="chart-row-2">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-medal"></i> 매출 기여 상위 10대 베스트셀러 상품</h2>
+                        <span class="card-desc">총 판매 금액 기준으로 가장 매출 성과가 좋은 상품군을 정렬합니다.</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-top-items"></canvas>
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-key"></i> 상품 설명 주요 키워드 Top 15</h2>
+                        <span class="card-desc">TF-IDF 기반 상품 설명 단어 분석 결과 중 주요 고빈도 단어 리스트입니다.</span>
+                    </div>
+                    <div class="keyword-list" id="keyword-container">
+                        <!-- 동적으로 태그 클라우드 삽입 -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-pie-chart"></i> 테마 카테고리별 매출 비중 분석</h2>
+                    <span class="card-desc">주요 지시단어 분류 모델링을 거친 카테고리별 매출 포트폴리오 비중입니다.</span>
+                </div>
+                <div class="chart-container" style="height: 350px;">
+                    <canvas id="chart-categories"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab Panel 3: 고객 RFM 분석 -->
+        <section id="panel-rfm" class="tab-panel">
+            <div class="chart-grid-2">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-users-rectangle"></i> RFM 세그먼트별 고객 수 분포</h2>
+                        <span class="card-desc">플랫폼 내 고객 세그먼트별 실재 고객 분포 비율을 분석합니다.</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-rfm-counts"></canvas>
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-hand-holding-dollar"></i> RFM 세그먼트별 매출액 기여 규모</h2>
+                        <span class="card-desc">실제 비즈니스 매출 성장을 이끄는 핵심 세그먼트의 매출 기여도를 비교합니다.</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-rfm-sales"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-lightbulb"></i> RFM 세그먼트 맞춤형 비즈니스 전략 가이드</h2>
+                    <span class="card-desc">데이터 기반 분류 모델에 매핑되는 CRM 및 마케팅 전략 프레임워크입니다.</span>
+                </div>
+                <div class="segment-list">
+                    <div class="segment-info-card">
+                        <span class="seg-badge seg-champions">Champions</span>
+                        <h4>플랫폼 핵심 VIP 충성 고객</h4>
+                        <p>구매 빈도와 누적 금액이 최상위권인 고객층입니다. 신상품 우선 구매권, 무료 배송 혜택 및 1:1 VIP 전담 상담 등 전면적 케어를 지원하여 락인 효과를 다집니다.</p>
+                    </div>
+                    <div class="segment-info-card">
+                        <span class="seg-badge seg-loyal">Loyal Customers</span>
+                        <h4>안정적인 기여 충성 고객</h4>
+                        <p>꾸준한 빈도로 고가 구매를 지속하는 고객군입니다. 관련 장식품/가방 테마 중심의 교차 추천 패키지와 타겟 마일리지 제도를 통해 핵심 VIP 등급 진입을 독려합니다.</p>
+                    </div>
+                    <div class="segment-info-card">
+                        <span class="seg-badge seg-recent">Recent Customers</span>
+                        <h4>성장 잠재력을 가진 신규 고객</h4>
+                        <p>최근 가입 후 첫 구매를 일으킨 유저군입니다. 첫 구매 후 14일, 30일 시점에 자동 온보딩 이메일 웰컴 쿠폰 및 연관 소품 연계 추천 메일링 캠페인을 정밀 가동합니다.</p>
+                    </div>
+                    <div class="segment-info-card">
+                        <span class="seg-badge seg-at-risk">At Risk</span>
+                        <h4>이탈 리스크가 높은 고가치 고객</h4>
+                        <p>과거에는 높은 기여를 보였으나 장기간 구매가 중단된 고객층입니다. 파격적인 '개인화 리액티베이션(Re-activation)' 컴백 특별 할인을 적용하여 휴면 전환을 긴급 방어합니다.</p>
+                    </div>
+                    <div class="segment-info-card">
+                        <span class="seg-badge seg-hibernating">Hibernating</span>
+                        <h4>재구매 빈도가 낮은 일반 휴면 고객</h4>
+                        <p>이탈 단계에 진입한 일반 고객군입니다. 높은 마케팅 비용 투입보다는 대규모 성수기(9~11월) 정기 뉴스레터 이벤트 기획 공유 등 저비용 CRM 위주로 자원을 효율화합니다.</p>
+                    </div>
+                    <div class="segment-info-card">
+                        <span class="seg-badge seg-lost">Lost</span>
+                        <h4>영구 이탈 가능성이 매우 높은 고객</h4>
+                        <p>거래일이 가장 오래되고 빈도가 전무한 유저입니다. 무차별 마케팅 대상을 배제하여 CAC 지표를 통제하되, 비정기 휴면 고객 특별 복귀 패키지로 최종 리타겟팅을 시도합니다.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab Panel 4: 코호트 유지율 분석 -->
+        <section id="panel-cohort" class="tab-panel">
+            <!-- 국가별 성과 비교 (All 필터 상태에서만 유효하게 표시) -->
+            <div id="country-comparison-card" class="dashboard-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-chart-bar"></i> 글로벌 국가별 매출액 및 건당 평균 주문액(AOV) 비교</h2>
+                    <span class="card-desc">영국과 해외 시장의 총 거래 규모 대비 단당 평균 객단가(AOV)의 차별적 성과를 입체적으로 분석합니다.</span>
+                </div>
+                <div class="chart-container" style="height: 380px;">
+                    <canvas id="chart-country-compare"></canvas>
+                </div>
+            </div>
+            
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-table-cells"></i> 월별 코호트 고객 유지율 매트릭스 (Cohort Retention Matrix)</h2>
+                    <span class="card-desc">첫 구매 시점(Cohort Month)을 기준으로 월별 활동 고객의 플랫폼 장기 유지 패턴을 관찰합니다. (수치 단위: %)</span>
+                </div>
+                <div class="cohort-table-wrapper">
+                    <table class="cohort-table" id="cohort-retention-table">
+                        <!-- 동적으로 코호트 매트릭스 테이블 렌더링 -->
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Parquet에서 가공 완료한 32KB JSON 정제 데이터셋 임베딩 -->
+    <script>
+        const dashboardData = {
+  "All": {
+    "kpis": {
+      "total_sales": 10666684.544,
+      "total_orders": 19960,
+      "total_customers": 4338,
+      "avg_order_value": 534.403033266533
+    },
+    "monthly": {
+      "labels": ["2010-12", "2011-01", "2011-02", "2011-03", "2011-04", "2011-05", "2011-06", "2011-07", "2011-08", "2011-09", "2011-10", "2011-11", "2011-12"],
+      "sales": [823746.14, 691364.56, 523631.89, 717639.36, 537808.621, 770536.02, 761739.9, 719221.191, 759138.38, 1058590.172, 1154979.3, 1509496.33, 638792.68],
+      "orders": [1559, 1086, 1100, 1454, 1246, 1681, 1533, 1475, 1361, 1837, 2040, 2769, 819]
+    },
+    "daily": {
+      "labels": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Sunday"],
+      "sales": [1779575.041, 2178632.611, 1851147.81, 2203161.24, 1840340.231, 813827.611]
+    },
+    "hourly": {
+      "labels": ["6시", "7시", "8시", "9시", "10시", "11시", "12시", "13시", "14시", "15시", "16시", "17시", "18시", "19시", "20시"],
+      "sales": [4.25, 31059.21, 283868.52, 990267.821, 1446742.701, 1239954.44, 1444245.88, 1265736.3, 1181812.37, 1352972.18, 754006.56, 461603.49, 144813.05, 50665.01, 18932.76]
+    },
+    "top_items": {
+      "labels": ["DOTCOM POSTAGE", "REGENCY CAKESTAND 3 TIER", "PAPER CRAFT , LITTLE BIRDIE", "WHITE HANGING HEART T-LIGHT HOLDER", "PARTY BUNTING", "JUMBO BAG RED RETROSPOT", "MEDIUM CERAMIC TOP STORAGE JAR", "Manual", "POSTAGE", "RABBIT NIGHT LIGHT"],
+      "sales": [206248.77, 174484.74, 168469.6, 106292.77, 99504.33, 94340.05, 81700.92, 78112.82, 78101.88, 66964.99],
+      "quantities": [706, 13879, 80995, 37891, 18295, 48474, 78033, 7225, 3150, 30788]
+    },
+    "keywords": {
+      "labels": ["RETROSPOT", "CHRISTMAS", "CAKE", "JUMBO", "LUNCH", "3", "SIGN", "HANGING", "HOLDER", "PACK", "T-LIGHT", "CARD", "6", "DECORATION", "WOODEN"],
+      "counts": [34400, 24840, 20938, 20875, 18240, 18078, 16791, 16647, 15831, 15525, 14179, 13158, 13008, 12873, 12551]
+    },
+    "categories": {
+      "labels": ["Bags", "Clocks", "Gifts", "Holiday", "Kitchenware", "Lighting", "Others"],
+      "sales": [1115516.88, 171272.69, 70691.2, 366853.46, 311943.34, 682748.83, 7947658.144]
+    },
+    "rfm": {
+      "segments": ["About to Sleep", "At Risk", "Champions", "Hibernating", "Lost", "Loyal Customers", "Recent Customers"],
+      "counts": [351, 643, 962, 401, 664, 998, 319],
+      "sales": [161832.59, 800531.551, 5809341.07, 203244.581, 316163.991, 1474127.551, 146166.57],
+      "avg_recency": [53.50, 152.84, 12.86, 118.25, 278.07, 34.09, 18.51],
+      "avg_frequency": [1.16, 3.40, 11.08, 1.16, 1.06, 3.71, 1.24]
+    },
+    "retention": {
+      "cohorts": ["2010-12", "2011-01", "2011-02", "2011-03", "2011-04", "2011-05", "2011-06", "2011-07", "2011-08", "2011-09", "2011-10", "2011-11", "2011-12"],
+      "matrix": [
+        [100.0, 36.6, 32.3, 38.4, 36.3, 39.8, 36.3, 34.9, 35.4, 39.5, 37.4, 50.3, 26.6],
+        [100.0, 22.1, 26.6, 23.0, 32.1, 28.8, 24.7, 24.2, 30.0, 32.6, 36.5, 11.8, 0.0],
+        [100.0, 18.7, 18.7, 28.4, 27.1, 24.7, 25.3, 27.9, 24.7, 30.5, 6.8, 0.0, 0.0],
+        [100.0, 15.0, 25.2, 19.9, 22.3, 16.8, 26.8, 23.0, 27.9, 8.6, 0.0, 0.0, 0.0],
+        [100.0, 21.3, 20.3, 21.0, 19.7, 22.7, 21.7, 26.0, 7.3, 0.0, 0.0, 0.0, 0.0],
+        [100.0, 19.0, 17.3, 17.3, 20.8, 23.2, 26.4, 9.5, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [100.0, 17.4, 15.7, 26.4, 23.1, 33.5, 9.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [100.0, 18.1, 20.7, 22.3, 27.1, 11.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [100.0, 20.7, 24.9, 24.3, 12.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [100.0, 23.4, 30.1, 11.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [100.0, 24.0, 11.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [100.0, 11.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      ],
+      "sizes": [885, 417, 380, 452, 300, 284, 242, 188, 169, 299, 358, 323, 41]
+    },
+    "country_performance": {
+      "countries": ["United Kingdom", "Netherlands", "EIRE", "Germany", "France", "Australia", "Spain", "Switzerland", "Belgium", "Sweden"],
+      "sales": [9025222.084, 285446.34, 283453.96, 228867.14, 209715.11, 138521.31, 61577.11, 57089.9, 41196.34, 38378.33],
+      "orders": [18019, 94, 288, 457, 392, 57, 90, 54, 98, 36],
+      "aov": [500.87, 3036.66, 984.21, 500.80, 534.98, 2430.20, 684.19, 1057.22, 420.37, 1066.06]
+    }
+  },
+  "United Kingdom": {
+    "kpis": {
+      "total_sales": 9025222.084,
+      "total_orders": 18019,
+      "total_customers": 3920,
+      "avg_order_value": 500.87
+    },
+    "monthly": {
+      "labels": ["2010-12", "2011-01", "2011-02", "2011-03", "2011-04", "2011-05", "2011-06", "2011-07", "2011-08", "2011-09", "2011-10", "2011-11", "2011-12"],
+      "sales": [748268.98, 561289.98, 430027.95, 586230.28, 476517.761, 639314.36, 619510.67, 601994.841, 608047.48, 897076.472, 938975.01, 1325346.21, 592622.09],
+      "orders": [1447, 971, 995, 1308, 1153, 1523, 1383, 1337, 1210, 1645, 1811, 2490, 746]
+    },
+    "daily": {
+      "labels": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Sunday"],
+      "sales": [1528817.371, 1885586.861, 1540809.45, 1789239.81, 1565940.341, 714828.251]
+    },
+    "hourly": {
+      "labels": ["6시", "7시", "8시", "9시", "10시", "11시", "12시", "13시", "14시", "15시", "16시", "17시", "18시", "19시", "20시"],
+      "sales": [4.25, 11124.58, 186997.63, 823542.291, 1177378.341, 1032975.87, 1218362.02, 1061984.84, 988783.081, 1197352.5, 693550.06, 429023.021, 140364.22, 44846.62, 18932.76]
+    },
+    "top_items": {
+      "labels": ["DOTCOM POSTAGE", "PAPER CRAFT , LITTLE BIRDIE", "REGENCY CAKESTAND 3 TIER", "WHITE HANGING HEART T-LIGHT HOLDER", "PARTY BUNTING", "JUMBO BAG RED RETROSPOT", "MEDIUM CERAMIC TOP STORAGE JAR", "PAPER CHAIN KIT 50'S CHRISTMAS ", "ASSORTED COLOUR BIRD ORNAMENT", "CHILLI LIGHTS"],
+      "sales": [206248.77, 168469.6, 142273.29, 100497.72, 93658.53, 86471.34, 80575.63, 62742.54, 54756.79, 53336.56],
+      "quantities": [706, 80995, 11068, 35740, 16973, 44264, 77036, 18530, 33735, 10154]
+    },
+    "keywords": {
+      "labels": ["RETROSPOT", "CHRISTMAS", "JUMBO", "CAKE", "3", "SIGN", "LUNCH", "HANGING", "HOLDER", "PACK", "T-LIGHT", "DECORATION", "CARD", "6", "WOODEN"],
+      "counts": [30186, 23358, 19653, 18594, 16297, 16223, 16202, 15901, 15098, 13823, 13597, 12321, 12148, 11900, 11748]
+    },
+    "categories": {
+      "labels": ["Bags", "Clocks", "Gifts", "Holiday", "Kitchenware", "Lighting", "Others"],
+      "sales": [970276.77, 145855.28, 48345.04, 328720.04, 258757.12, 602261.13, 6671006.704]
+    },
+    "rfm": {
+      "segments": ["About to Sleep", "At Risk", "Champions", "Hibernating", "Lost", "Loyal Customers", "Recent Customers"],
+      "counts": [315, 597, 874, 366, 602, 881, 285],
+      "sales": [136636.59, 740774.891, 4636582.79, 151750.021, 269860.561, 1262544.091, 110242.61],
+      "avg_recency": [53.04, 150.84, 12.74, 117.46, 275.58, 33.28, 18.73],
+      "avg_frequency": [1.17, 3.47, 10.90, 1.15, 1.06, 3.69, 1.24]
+    }
+  },
+  "Germany": {
+    "kpis": {
+      "total_sales": 228867.14,
+      "total_orders": 457,
+      "total_customers": 94,
+      "avg_order_value": 500.80
+    },
+    "monthly": {
+      "labels": ["2010-12", "2011-01", "2011-02", "2011-03", "2011-04", "2011-05", "2011-06", "2011-07", "2011-08", "2011-09", "2011-10", "2011-11", "2011-12"],
+      "sales": [15241.14, 16910.84, 9581.05, 14392.69, 12315.54, 25751.2, 13274.1, 16440.98, 19220.77, 18091.22, 31638.42, 28025.02, 7984.17],
+      "orders": [30, 31, 19, 32, 23, 42, 24, 33, 39, 41, 58, 68, 17]
+    },
+    "daily": {
+      "labels": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Sunday"],
+      "sales": [37637.42, 25231.97, 35330.39, 63617.36, 50711.48, 16338.52]
+    },
+    "hourly": {
+      "labels": ["6시", "7시", "8시", "9시", "10시", "11시", "12시", "13시", "14시", "15시", "16시", "17시", "18시", "19시", "20시"],
+      "sales": [0.0, 0.0, 9086.75, 30981.6, 27107.97, 19485.58, 36178.77, 35367.74, 37527.59, 25711.92, 2729.2, 4275.92, 414.1, 0.0, 0.0]
+    },
+    "top_items": {
+      "labels": ["POSTAGE", "REGENCY CAKESTAND 3 TIER", "ROUND SNACK BOXES SET OF4 WOODLAND ", "Manual", "ROUND SNACK BOXES SET OF 4 FRUITS ", "SPACEBOY LUNCH BOX ", "PLASTERS IN TIN WOODLAND ANIMALS", "RED KITCHEN SCALES", "GUMBALL COAT RACK", "6 RIBBONS RUSTIC CHARM"],
+      "sales": [21001.0, 9061.95, 3598.95, 2296.25, 1982.40, 1631.40, 1414.05, 1339.60, 1319.7, 1313.55],
+      "quantities": [1114, 809, 1233, 8, 672, 876, 857, 168, 562, 735]
+    },
+    "keywords": {
+      "labels": ["RETROSPOT", "WOODLAND", "CAKE", "SPACEBOY", "POSTAGE", "PACK", "LUNCH", "3", "POLKADOT", "TIN", "CASES", "JUMBO", "CHRISTMAS", "CERAMIC", "6"],
+      "counts": [926, 530, 461, 397, 374, 368, 361, 336, 335, 334, 292, 288, 278, 266, 256]
+    },
+    "categories": {
+      "labels": ["Bags", "Clocks", "Gifts", "Holiday", "Kitchenware", "Lighting", "Others"],
+      "sales": [19747.31, 3866.31, 2535.98, 4519.7, 8549.26, 6430.57, 183218.01]
+    },
+    "rfm": {
+      "segments": ["About to Sleep", "At Risk", "Champions", "Hibernating", "Lost", "Loyal Customers", "Recent Customers"],
+      "counts": [3, 10, 21, 10, 17, 25, 8],
+      "sales": [1113.81, 10506.65, 135914.49, 6903.14, 22312.16, 47469.2, 4647.69],
+      "avg_recency": [44.33, 111.6, 12.66, 82.9, 244.0, 27.48, 14.37],
+      "avg_frequency": [1.33, 3.30, 12.47, 1.40, 1.29, 4.48, 1.25]
+    }
+  },
+  "France": {
+    "kpis": {
+      "total_sales": 209715.11,
+      "total_orders": 392,
+      "total_customers": 87,
+      "avg_order_value": 534.98
+    },
+    "monthly": {
+      "labels": ["2010-12", "2011-01", "2011-02", "2011-03", "2011-04", "2011-05", "2011-06", "2011-07", "2011-08", "2011-09", "2011-10", "2011-11", "2011-12"],
+      "sales": [9616.31, 17740.12, 8515.96, 14589.55, 5529.61, 17614.88, 16348.41, 10000.19, 13810.96, 23428.04, 33485.45, 31758.71, 7276.92],
+      "orders": [21, 29, 21, 25, 14, 39, 31, 22, 28, 45, 35, 64, 18]
+    },
+    "daily": {
+      "labels": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Sunday"],
+      "sales": [30093.93, 28126.29, 45053.94, 48512.92, 42998.68, 14929.35]
+    },
+    "hourly": {
+      "labels": ["6시", "7시", "8시", "9시", "10시", "11시", "12시", "13시", "14시", "15시", "16시", "17시", "18시", "19시", "20시"],
+      "sales": [0.0, 9129.76, 7409.74, 22260.39, 30236.25, 28574.97, 23223.57, 27411.21, 29671.98, 21039.85, 7233.55, 2680.38, 843.46, 0.0, 0.0]
+    },
+    "top_items": {
+      "labels": ["POSTAGE", "Manual", "RABBIT NIGHT LIGHT", "REGENCY CAKESTAND 3 TIER", "RED TOADSTOOL LED NIGHT LIGHT", "PLASTERS IN TIN CIRCUS PARADE ", "PLASTERS IN TIN WOODLAND ANIMALS", "ASSORTED COLOUR BIRD ORNAMENT", "ROUND SNACK BOXES SET OF4 WOODLAND ", "RED RETROSPOT MINI CASES"],
+      "sales": [15454.0, 9492.37, 7277.2, 2816.85, 2169.75, 1868.40, 1868.40, 1842.76, 1837.80, 1662.9],
+      "quantities": [825, 6, 4024, 239, 1315, 1144, 1144, 1204, 636, 214]
+    },
+    "keywords": {
+      "labels": ["RETROSPOT", "LUNCH", "SPACEBOY", "WOODLAND", "TIN", "DOLLY", "PACK", "CHILDRENS", "GIRL", "MINI", "POLKADOT", "POSTAGE", "CAKE", "CASES", "JUMBO"],
+      "counts": [997, 635, 486, 361, 348, 346, 335, 331, 325, 313, 309, 300, 294, 273, 269]
+    },
+    "categories": {
+      "labels": ["Bags", "Clocks", "Gifts", "Holiday", "Kitchenware", "Lighting", "Others"],
+      "sales": [20911.69, 5295.03, 4024.7, 3032.45, 7001.36, 13303.09, 156146.79]
+    },
+    "rfm": {
+      "segments": ["About to Sleep", "At Risk", "Champions", "Hibernating", "Lost", "Loyal Customers", "Recent Customers"],
+      "counts": [7, 10, 19, 8, 17, 23, 3],
+      "sales": [2576.85, 17411.1, 116993.61, 3855.4, 4950.22, 62279.06, 957.81],
+      "avg_recency": [36.57, 116.9, 10.73, 88.25, 289.52, 21.39, 13.33],
+      "avg_frequency": [1.28, 3.70, 11.0, 1.37, 1.05, 4.39, 1.33]
+    }
+  },
+  "EIRE": {
+    "kpis": {
+      "total_sales": 283453.96,
+      "total_orders": 288,
+      "total_customers": 3,
+      "avg_order_value": 984.21
+    },
+    "monthly": {
+      "labels": ["2010-12", "2011-01", "2011-02", "2011-03", "2011-04", "2011-05", "2011-06", "2011-07", "2011-08", "2011-09", "2011-10", "2011-11", "2011-12"],
+      "sales": [10033.26, 21904.19, 12248.74, 22197.51, 7570.5, 18008.76, 24863.61, 42789.85, 18353.75, 43086.55, 24317.92, 30738.43, 7340.89],
+      "orders": [17, 7, 13, 23, 11, 22, 28, 27, 19, 38, 31, 42, 10]
+    },
+    "daily": {
+      "labels": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Sunday"],
+      "sales": [51364.51, 48051.59, 44485.59, 50850.31, 62533.31, 26168.65]
+    },
+    "hourly": {
+      "labels": ["6시", "7시", "8시", "9시", "10시", "11시", "12시", "13시", "14시", "15시", "16시", "17시", "18시", "19시", "20시"],
+      "sales": [0.0, 6406.08, 19086.18, 29916.23, 50898.98, 24813.73, 27964.99, 20790.9, 57943.61, 28935.84, 2927.70, 11473.09, 325.64, 1970.99, 0.0]
+    },
+    "top_items": {
+      "labels": ["REGENCY CAKESTAND 3 TIER", "Manual", "CARRIAGE", "3 TIER CAKE TIN RED AND CREAM", "JAM MAKING SET WITH JARS", "WHITE HANGING HEART T-LIGHT HOLDER", "RED RETROSPOT CAKE STAND", "ROSES REGENCY TEACUP AND SAUCER ", "COOK WITH WINE METAL SIGN ", "SPOTTY BUNTING"],
+      "sales": [7844.25, 7049.66, 5240.0, 4265.55, 3097.5, 2928.6, 2781.30, 2620.80, 2304.08, 2229.25],
+      "quantities": [683, 5, 106, 333, 786, 1092, 254, 984, 1226, 515]
+    },
+    "keywords": {
+      "labels": ["RETROSPOT", "CAKE", "CHRISTMAS", "REGENCY", "3", "HOLDER", "HANGING", "CASES", "PANTRY", "WOODEN", "PACK", "T-LIGHT", "TEA", "HOME", "SIGN"],
+      "counts": [513, 432, 407, 391, 380, 285, 271, 259, 259, 241, 234, 230, 228, 219, 193]
+    },
+    "categories": {
+      "labels": ["Bags", "Clocks", "Gifts", "Holiday", "Kitchenware", "Lighting", "Others"],
+      "sales": [11195.19, 5269.71, 5091.18, 12144.87, 11071.93, 12965.99, 225715.09]
+    },
+    "rfm": {
+      "segments": ["Champions", "Lost", "Loyal Customers"],
+      "counts": [1, 1, 1],
+      "sales": [143825.06, 4341.21, 117379.63],
+      "avg_recency": [1.0, 161.0, 9.0],
+      "avg_frequency": [201.0, 4.0, 55.0]
+    }
+  },
+  "Netherlands": {
+    "kpis": {
+      "total_sales": 285446.34,
+      "total_orders": 94,
+      "total_customers": 9,
+      "avg_order_value": 3036.66
+    },
+    "monthly": {
+      "labels": ["2010-12", "2011-01", "2011-02", "2011-03", "2011-04", "2011-05", "2011-06", "2011-07", "2011-08", "2011-09", "2011-10", "2011-11", "2011-12"],
+      "sales": [8784.48, 26611.16, 23011.91, 22416.49, 2976.56, 29185.88, 26858.09, 26.02, 40327.81, 26937.26, 40708.65, 25874.01, 11728.02],
+      "orders": [3, 5, 5, 8, 3, 11, 11, 1, 7, 7, 15, 15, 3]
+    },
+    "daily": {
+      "labels": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Sunday"],
+      "sales": [34803.38, 71633.11, 45050.42, 95286.99, 32831.14, 5841.30]
+    },
+    "hourly": {
+      "labels": ["6시", "7시", "8시", "9시", "10시", "11시", "12시", "13시", "14시", "15시", "16시", "17시", "18시", "19시", "20시"],
+      "sales": [0.0, 419.8, 14284.75, 8100.18, 56095.10, 66474.98, 58264.23, 14550.45, 15119.53, 32602.50, 19372.02, 162.80, 0.0, 0.0, 0.0]
+    },
+    "top_items": {
+      "labels": ["RABBIT NIGHT LIGHT", "ROUND SNACK BOXES SET OF4 WOODLAND ", "SPACEBOY LUNCH BOX ", "DOLLY GIRL LUNCH BOX", "ROUND SNACK BOXES SET OF 4 FRUITS ", "RED TOADSTOOL LED NIGHT LIGHT", "JUMBO BAG RED RETROSPOT", "REGENCY CAKESTAND 3 TIER", "5 HOOK HANGER RED MAGIC TOADSTOOL", "JUMBO BAG WOODLAND ANIMALS"],
+      "sales": [9568.48, 7991.4, 7485.60, 6828.60, 4039.20, 3479.40, 3468.00, 3166.35, 2923.20, 2629.00],
+      "quantities": [4801, 3132, 4528, 4132, 1584, 2388, 2000, 289, 2016, 1500]
+    },
+    "keywords": {
+      "labels": ["RETROSPOT", "LUNCH", "SPACEBOY", "CAKE", "DOLLY", "PACK", "GIRL", "CASES", "WOODLAND", "JUMBO", "3", "CARD", "POLKADOT", "CHILDRENS", "CHARLOTTE"],
+      "counts": [202, 195, 187, 141, 133, 132, 124, 119, 112, 112, 105, 105, 96, 90, 84]
+    },
+    "categories": {
+      "labels": ["Bags", "Clocks", "Gifts", "Holiday", "Kitchenware", "Lighting", "Others"],
+      "sales": [47539.28, 931.95, 1946.43, 4081.02, 5960.0, 18749.9, 206237.76]
+    },
+    "rfm": {
+      "segments": ["Champions", "Hibernating", "Lost", "Loyal Customers"],
+      "counts": [3, 2, 2, 2],
+      "sales": [282414.29, 519.43, 517.52, 1995.10],
+      "avg_recency": [12.0, 125.0, 282.0, 30.0],
+      "avg_frequency": [28.0, 1.0, 1.0, 3.0]
+    }
+  }
+};
+    </script>
+    
+    <!-- 대시보드 인터랙션 코어 스크립트 (한글 주석 처리) -->
+    <script>
+        // 글로벌 테마, 활성 국가 및 탭 상태 변수
+        let currentTheme = 'dark';
+        let currentCountry = 'All';
+        let activeTab = 'dashboard';
+        const chartInstances = {};
+        
+        // 프리미엄 다크/라이트 차트 컬러 파레트 정의
+        const chartColors = {
+            accent: '#6366f1',
+            accentLight: '#818cf8',
+            neonBlue: '#06b6d4',
+            neonPurple: '#a855f7',
+            success: '#10b981',
+            warning: '#f59e0b',
+            danger: '#ef4444',
+            text: '#94a3b8',
+            border: 'rgba(255, 255, 255, 0.08)',
+            gridLines: 'rgba(255, 255, 255, 0.04)',
+            rainbow: [
+                '#6366f1', '#06b6d4', '#10b981', '#f59e0b', 
+                '#a855f7', '#ef4444', '#f43f5e', '#ec4899', 
+                '#3b82f6', '#14b8a6', '#84cc16'
+            ]
+        };
+        
+        // 라이트 모드용 차트 오버라이드 색상
+        const lightColors = {
+            text: '#475569',
+            border: 'rgba(0, 0, 0, 0.06)',
+            gridLines: 'rgba(0, 0, 0, 0.03)'
+        };
+        
+        // 현재 활성화된 테마 색상 반환
+        function getChartColors() {
+            const activeColors = {...chartColors};
+            if (currentTheme === 'light') {
+                activeColors.text = lightColors.text;
+                activeColors.border = lightColors.border;
+                activeColors.gridLines = lightColors.gridLines;
+            }
+            return activeColors;
+        }
+
+        // DOM 로드 완료 후 초기화 작업
+        document.addEventListener('DOMContentLoaded', () => {
+            // 로컬 스토리지 또는 브라우저 기본 테마 읽기
+            const savedTheme = localStorage.getItem('retail-dashboard-theme') || 'dark';
+            setTheme(savedTheme);
+            
+            // 초기 국가 요약 데이터 로드 및 렌더링
+            updateKPIs('All');
+            initAllCharts();
+            renderKeywords('All');
+            renderCohortTable();
+        });
+
+        // 테마 토글 버튼 제어
+        function toggleTheme() {
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+            
+            // 차트 갱신 시 오버헤드 방지를 위해 차트 전체 파괴 후 재생성
+            rebuildAllCharts();
+            renderCohortTable();
+        }
+
+        // 테마 적용 및 스토리지 저장
+        function setTheme(theme) {
+            currentTheme = theme;
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('retail-dashboard-theme', theme);
+            
+            const icon = document.getElementById('theme-icon');
+            const text = document.getElementById('theme-text');
+            
+            if (theme === 'light') {
+                icon.className = 'fa-solid fa-sun';
+                text.innerText = '라이트 모드';
+            } else {
+                icon.className = 'fa-solid fa-moon';
+                text.innerText = '다크 모드';
+            }
+        }
+
+        // 탭 전환 제어
+        function switchTab(tabId, element) {
+            activeTab = tabId;
+            
+            // 내비게이션 메뉴 활성화 스타일 적용
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+            
+            // 대시보드 패널 보이기/숨기기
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+            document.getElementById(`panel-${tabId}`).classList.add('active');
+            
+            // 숨겨진 탭에서 리렌더링 시 레이아웃 깨짐을 방지하기 위한 크기 보정 작업
+            Object.values(chartInstances).forEach(chart => {
+                chart.resize();
+                chart.update();
+            });
+        }
+
+        // 포맷팅 헬퍼 함수
+        function formatSales(value) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+        }
+        
+        function formatNumber(value) {
+            return new Intl.NumberFormat('en-US').format(value);
+        }
+
+        // 카운트업 KPI 롤링 애니메이션 구현
+        function animateNumber(elementId, targetValue, isCurrency = false) {
+            const element = document.getElementById(elementId);
+            const duration = 1000; // 1초 지속
+            const start = performance.now();
+            const startVal = 0;
+            
+            function step(timestamp) {
+                const elapsed = timestamp - start;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Ease out cubic 가감속 공식 적용
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+                const currentVal = startVal + easeProgress * (targetValue - startVal);
+                
+                if (isCurrency) {
+                    element.innerText = new Intl.NumberFormat('en-US', { 
+                        style: 'currency', 
+                        currency: 'USD', 
+                        maximumFractionDigits: targetValue % 1 === 0 ? 0 : 2 
+                    }).format(currentVal);
+                } else {
+                    element.innerText = formatNumber(Math.floor(currentVal));
+                }
+                
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            }
+            window.requestAnimationFrame(step);
+        }
+
+        // KPI 업데이트
+        function updateKPIs(country) {
+            const kpis = dashboardData[country].kpis;
+            animateNumber('kpi-sales', kpis.total_sales, true);
+            animateNumber('kpi-orders', kpis.total_orders);
+            animateNumber('kpi-customers', kpis.total_customers);
+            animateNumber('kpi-aov', kpis.avg_order_value, true);
+        }
+
+        // 국가 변경 핸들러
+        function onCountryChange(country) {
+            currentCountry = country;
+            
+            const titleEl = document.getElementById('dashboard-title');
+            const subEl = document.getElementById('dashboard-subtitle');
+            
+            if (country === 'All') {
+                titleEl.innerHTML = '📈 리테일 종합 경영 분석 대시보드';
+                subEl.innerHTML = 'online_retail.parquet 데이터셋 기반 인터랙티브 분석 리포트';
+                document.getElementById('country-comparison-card').style.display = 'flex';
+            } else {
+                titleEl.innerHTML = `🌍 ${country} 리테일 국가별 정밀 분석`;
+                subEl.innerHTML = `${country} 지역 거래 지표 및 주요 고객군 세그먼트 패턴 분석`;
+                document.getElementById('country-comparison-card').style.display = 'none';
+            }
+            
+            updateKPIs(country);
+            updateChartsData(country);
+            renderKeywords(country);
+        }
+
+        // 키워드 태그 클라우드 렌더링
+        function renderKeywords(country) {
+            const container = document.getElementById('keyword-container');
+            container.innerHTML = '';
+            
+            const kwData = dashboardData[country].keywords;
+            kwData.labels.forEach((kw, index) => {
+                const count = kwData.counts[index];
+                const tag = document.createElement('span');
+                tag.className = 'keyword-tag';
+                tag.innerHTML = `${kw} <span style="font-size: 0.65rem; color: var(--text-muted);">(${count})</span>`;
+                container.appendChild(tag);
+            });
+        }
+
+        // 코호트 유지율 매트릭스 HTML 테이블 동적 생성
+        function renderCohortTable() {
+            const table = document.getElementById('cohort-retention-table');
+            table.innerHTML = '';
+            
+            const cohortData = dashboardData['All'].retention;
+            
+            // 테이블 헤더 조립
+            let headerHtml = '<thead><tr><th>첫 구매월 (Cohort)</th><th>고객수 (Size)</th>';
+            for (let i = 1; i <= 13; i++) {
+                headerHtml += `<th>M${i}</th>`;
+            }
+            headerHtml += '</tr></thead>';
+            
+            // 테이블 바디 조립 (투명도 조절 방식 히트맵 렌더링)
+            let bodyHtml = '<tbody>';
+            cohortData.cohorts.forEach((cohort, rIdx) => {
+                bodyHtml += `<tr>`;
+                bodyHtml += `<td class="cohort-month">${cohort}</td>`;
+                bodyHtml += `<td class="cohort-size">${formatNumber(cohortData.sizes[rIdx])}명</td>`;
+                
+                const matrixRow = cohortData.matrix[rIdx];
+                matrixRow.forEach((val, cIdx) => {
+                    if (cIdx + rIdx < 13) {
+                        const percent = val.toFixed(1);
+                        
+                        let cellBg = '';
+                        let cellColor = '#fff';
+                        
+                        if (val > 0) {
+                            if (currentTheme === 'dark') {
+                                cellBg = `rgba(6, 182, 212, ${val / 100 * 0.85 + 0.15})`;
+                            } else {
+                                cellBg = `rgba(79, 70, 229, ${val / 100 * 0.85 + 0.15})`;
+                                if (val < 35) cellColor = 'var(--text-primary)';
+                            }
+                        } else {
+                            cellBg = 'transparent';
+                            cellColor = 'var(--text-muted)';
+                        }
+                        
+                        const actualUsers = Math.round(cohortData.sizes[rIdx] * (val / 100));
+                        bodyHtml += `<td class="ret-val" style="background-color: ${cellBg}; color: ${cellColor};" 
+                                         title="${cohort} 코호트의 ${cIdx + 1}달차 잔존 유저: ${actualUsers}명 / ${percent}%">
+                                         ${percent}%
+                                     </td>`;
+                    } else {
+                        bodyHtml += `<td style="background-color: transparent; color: var(--text-muted); opacity: 0.25;">-</td>`;
+                    }
+                });
+                bodyHtml += `</tr>`;
+            });
+            bodyHtml += '</tbody>';
+            
+            table.innerHTML = headerHtml + bodyHtml;
+        }
+
+        // 실시간 국가 필터 기반 차트 데이터 업데이트
+        function updateChartsData(country) {
+            const source = dashboardData[country];
+            
+            // 1. 월별 트렌드
+            const monthlyChart = chartInstances.monthly;
+            monthlyChart.data.labels = source.monthly.labels;
+            monthlyChart.data.datasets[0].data = source.monthly.sales;
+            monthlyChart.data.datasets[1].data = source.monthly.orders;
+            monthlyChart.update();
+            
+            // 2. 요일별 분포
+            const dailyChart = chartInstances.daily;
+            dailyChart.data.datasets[0].data = source.daily.sales;
+            dailyChart.update();
+            
+            // 3. 시간대별 분포
+            const hourlyChart = chartInstances.hourly;
+            hourlyChart.data.datasets[0].data = source.hourly.sales;
+            hourlyChart.update();
+            
+            // 4. 매출 상위 상품
+            const topChart = chartInstances.topItems;
+            topChart.data.labels = source.top_items.labels.map(x => x.length > 25 ? x.substring(0, 22) + '...' : x);
+            topChart.data.datasets[0].data = source.top_items.sales;
+            topChart.data.datasets[1].data = source.top_items.quantities;
+            topChart.update();
+            
+            // 5. 카테고리 비중
+            const catChart = chartInstances.categories;
+            catChart.data.datasets[0].data = source.categories.sales;
+            catChart.update();
+            
+            // 6. RFM 고객수 분포
+            const rfmCountsChart = chartInstances.rfmCounts;
+            rfmCountsChart.data.datasets[0].data = source.rfm.counts;
+            rfmCountsChart.data.labels = source.rfm.segments;
+            rfmCountsChart.update();
+            
+            // 7. RFM 매출 기여
+            const rfmSalesChart = chartInstances.rfmSales;
+            rfmSalesChart.data.datasets[0].data = source.rfm.sales;
+            rfmSalesChart.data.labels = source.rfm.segments;
+            rfmSalesChart.update();
+        }
+
+        // Chart.js 인스턴스 초기화 작업
+        function initAllCharts() {
+            const cColors = getChartColors();
+            const source = dashboardData[currentCountry];
+            
+            // 글로벌 폰트 디폴트 스타일 지정
+            Chart.defaults.color = cColors.text;
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            
+            // 1. 월별 트렌드 (라인-바 콤보 이중 축 차트)
+            const ctxMonthly = document.getElementById('chart-monthly-trend').getContext('2d');
+            chartInstances.monthly = new Chart(ctxMonthly, {
+                type: 'line',
+                data: {
+                    labels: source.monthly.labels,
+                    datasets: [
+                        {
+                            label: '월별 총 매출액 ($)',
+                            data: source.monthly.sales,
+                            borderColor: cColors.neonBlue,
+                            backgroundColor: 'rgba(6, 182, 212, 0.08)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.35,
+                            yAxisID: 'y'
+                        },
+                        {
+                            type: 'bar',
+                            label: '주문 건수',
+                            data: source.monthly.orders,
+                            backgroundColor: 'rgba(168, 85, 247, 0.25)',
+                            borderColor: cColors.neonPurple,
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            yAxisID: 'yOrders'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: cColors.gridLines, borderColor: cColors.border },
+                            ticks: { color: cColors.text }
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            grid: { color: cColors.gridLines, borderColor: cColors.border },
+                            ticks: {
+                                color: cColors.text,
+                                callback: (v) => '$' + formatNumber(v)
+                            }
+                        },
+                        yOrders: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: cColors.text }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { padding: 12, cornerRadius: 10 }
+                    }
+                }
+            });
+            
+            // 2. 요일별 매출 분포 (바 차트)
+            const ctxDaily = document.getElementById('chart-daily-dist').getContext('2d');
+            chartInstances.daily = new Chart(ctxDaily, {
+                type: 'bar',
+                data: {
+                    labels: source.daily.labels,
+                    datasets: [{
+                        label: '요일별 매출 합계 ($)',
+                        data: source.daily.sales,
+                        backgroundColor: 'rgba(99, 102, 241, 0.55)',
+                        borderColor: cColors.accent,
+                        borderWidth: 1.5,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: cColors.gridLines, borderColor: cColors.border } },
+                        y: { 
+                            grid: { color: cColors.gridLines, borderColor: cColors.border },
+                            ticks: { callback: (v) => '$' + formatNumber(v) }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            
+            // 3. 시간대별 매출 집중도 (면적 라인 차트)
+            const ctxHourly = document.getElementById('chart-hourly-dist').getContext('2d');
+            chartInstances.hourly = new Chart(ctxHourly, {
+                type: 'line',
+                data: {
+                    labels: source.hourly.labels,
+                    datasets: [{
+                        label: '시간대별 매출 총액 ($)',
+                        data: source.hourly.sales,
+                        borderColor: cColors.neonPurple,
+                        backgroundColor: 'rgba(168, 85, 247, 0.08)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: cColors.gridLines, borderColor: cColors.border } },
+                        y: {
+                            grid: { color: cColors.gridLines, borderColor: cColors.border },
+                            ticks: { callback: (v) => '$' + formatNumber(v) }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            
+            // 4. 베스트셀러 10대 상품 (수평 복합 바 차트)
+            const ctxTop = document.getElementById('chart-top-items').getContext('2d');
+            chartInstances.topItems = new Chart(ctxTop, {
+                type: 'bar',
+                data: {
+                    labels: source.top_items.labels.map(x => x.length > 25 ? x.substring(0, 22) + '...' : x),
+                    datasets: [
+                        {
+                            label: '누적 매출액 ($)',
+                            data: source.top_items.sales,
+                            backgroundColor: 'rgba(6, 182, 212, 0.65)',
+                            borderColor: cColors.neonBlue,
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            xAxisID: 'x'
+                        },
+                        {
+                            label: '누적 판매량 (개)',
+                            data: source.top_items.quantities,
+                            backgroundColor: 'rgba(245, 158, 11, 0.4)',
+                            borderColor: cColors.warning,
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            xAxisID: 'xQty',
+                            hidden: true // 기본적으로 매출 위주 렌더링
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            grid: { color: cColors.gridLines, borderColor: cColors.border },
+                            ticks: { callback: (v) => '$' + formatNumber(v) }
+                        },
+                        xQty: {
+                            type: 'linear',
+                            position: 'top',
+                            grid: { drawOnChartArea: false },
+                            ticks: { display: false }
+                        },
+                        y: { grid: { display: false, borderColor: cColors.border } }
+                    },
+                    plugins: {
+                        legend: { position: 'top' }
+                    }
+                }
+            });
+            
+            // 5. 카테고리 비중 (도넛 차트)
+            const ctxCat = document.getElementById('chart-categories').getContext('2d');
+            chartInstances.categories = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: source.categories.labels,
+                    datasets: [{
+                        data: source.categories.sales,
+                        backgroundColor: cColors.rainbow,
+                        borderWidth: currentTheme === 'dark' ? 2 : 1,
+                        borderColor: currentTheme === 'dark' ? cColors.bgSecondary : '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const val = context.raw;
+                                    const pct = (val / total * 100).toFixed(1);
+                                    return ` ${context.label}: ${formatSales(val)} (${pct}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+            
+            // 6. RFM 세그먼트별 고객수 (바 차트)
+            const ctxRfmCounts = document.getElementById('chart-rfm-counts').getContext('2d');
+            chartInstances.rfmCounts = new Chart(ctxRfmCounts, {
+                type: 'bar',
+                data: {
+                    labels: source.rfm.segments,
+                    datasets: [{
+                        label: '고객 수 (명)',
+                        data: source.rfm.counts,
+                        backgroundColor: [
+                            'rgba(6, 182, 212, 0.6)',
+                            'rgba(245, 158, 11, 0.6)',
+                            'rgba(16, 185, 129, 0.6)',
+                            'rgba(168, 85, 247, 0.6)',
+                            'rgba(239, 68, 68, 0.6)',
+                            'rgba(99, 102, 241, 0.6)',
+                            'rgba(244, 63, 94, 0.6)'
+                        ],
+                        borderColor: cColors.border,
+                        borderWidth: 1,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { display: false, borderColor: cColors.border } },
+                        y: { grid: { color: cColors.gridLines, borderColor: cColors.border } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            
+            // 7. RFM 세그먼트별 매출 (바 차트)
+            const ctxRfmSales = document.getElementById('chart-rfm-sales').getContext('2d');
+            chartInstances.rfmSales = new Chart(ctxRfmSales, {
+                type: 'bar',
+                data: {
+                    labels: source.rfm.segments,
+                    datasets: [{
+                        label: '매출 기여도 ($)',
+                        data: source.rfm.sales,
+                        backgroundColor: [
+                            'rgba(6, 182, 212, 0.6)',
+                            'rgba(245, 158, 11, 0.6)',
+                            'rgba(16, 185, 129, 0.6)',
+                            'rgba(168, 85, 247, 0.6)',
+                            'rgba(239, 68, 68, 0.6)',
+                            'rgba(99, 102, 241, 0.6)',
+                            'rgba(244, 63, 94, 0.6)'
+                        ],
+                        borderColor: cColors.border,
+                        borderWidth: 1,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { display: false, borderColor: cColors.border } },
+                        y: { 
+                            grid: { color: cColors.gridLines, borderColor: cColors.border },
+                            ticks: { callback: (v) => '$' + formatNumber(v) }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            
+            // 8. 국가 성과 비교 차트 (All 국가에서만 제공, 이중 축 콤보)
+            const cPerf = dashboardData['All'].country_performance;
+            const ctxCountryCompare = document.getElementById('chart-country-compare').getContext('2d');
+            chartInstances.countryCompare = new Chart(ctxCountryCompare, {
+                type: 'bar',
+                data: {
+                    labels: cPerf.countries,
+                    datasets: [
+                        {
+                            label: '국가별 총 매출액 ($)',
+                            data: cPerf.sales,
+                            backgroundColor: 'rgba(99, 102, 241, 0.65)',
+                            borderColor: cColors.accent,
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            yAxisID: 'y'
+                        },
+                        {
+                            type: 'line',
+                            label: '건당 평균 주문액 (AOV) ($)',
+                            data: cPerf.aov,
+                            borderColor: cColors.neonBlue,
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            pointBackgroundColor: cColors.neonPurple,
+                            pointBorderColor: '#fff',
+                            pointRadius: 5,
+                            tension: 0.3,
+                            yAxisID: 'yAov'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: cColors.gridLines, borderColor: cColors.border } },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            grid: { color: cColors.gridLines, borderColor: cColors.border },
+                            ticks: { callback: (v) => '$' + formatNumber(v) }
+                        },
+                        yAov: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { callback: (v) => '$' + formatNumber(v) }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' }
+                    }
+                }
+            });
+        }
+
+        // 테마 토글 시 색상 깨짐 방지를 위해 모든 차트 재생성
+        function rebuildAllCharts() {
+            Object.values(chartInstances).forEach(chart => {
+                chart.destroy();
+            });
+            initAllCharts();
+        }
+    </script>
+</body>
+</html>
